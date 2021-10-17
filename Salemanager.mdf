@@ -62,49 +62,49 @@ CREATE  TABLE CHITIETDATHANG (
 	MUCGIAMGIA numeric(2,1),
 	PRIMARY KEY (SOHOADON,MAHANG)
 );
-/* Bổ sung ràng buộc thiết lập giá trị mặc định bằng 1 cho cột SOLUONG và bằng 0
-cho cột MUCGIAMGIA trong bảng CHITIETDATHANG .*/
+/* Bổ sung ràng buộc thiết lập giá trị mặc định bằng 1 cho cột SOLUONG và bằng 0
+cho cột MUCGIAMGIA trong bảng CHITIETDATHANG .*/
 ALTER TABLE CHITIETDATHANG ADD CONSTRAINT SOLUONG DEFAULT 1 FOR SOLUONG ;
 ALTER TABLE CHITIETDATHANG ADD DEFAULT(0) FOR MUCGIAMGIA 
 
 /*
- * Bổ sung cho bảng DONDATHANG ràng buộc kiểm tra ngày giao hàng và ngày
-chuyển hàng phải sau hoặc bằng với ngày đặt hàng
+ * Bổ sung cho bảng DONDATHANG ràng buộc kiểm tra ngày giao hàng và ngày
+chuyển hàng phải sau hoặc bằng với ngày đặt hàng
  */
 ALTER TABLE DONDATHANG ADD CONSTRAINT CHK_NGAYGIAOHANG CHECK (NGAYDATHANG >= NGAYGIAOHANG AND NGAYDATHANG >= NGAYCHUYENHANG);
 
 /*
- * 4. Bổ sung ràng buộc cho bảng NHANVIEN để đảm bảo rằng một nhân viên chỉ có thể
-làm việc trong công ty khi đủ 18 tuổi và không quá 60 tuổi. */
+ * 4. Bổ sung ràng buộc cho bảng NHANVIEN để đảm bảo rằng một nhân viên chỉ có thể
+làm việc trong công ty khi đủ 18 tuổi và không quá 60 tuổi. */
 
 
 /*
- * 1. Cho biết danh sách các đối tác cung cấp hàng cho công ty. */
+ * 1. Cho biết danh sách các đối tác cung cấp hàng cho công ty. */
 SELECT * FROM NHACUNGCAP ;
 
 /*
- * 2. Mã hàng, tên hàng và số lượng hiện có trong công ty */
+ * 2. Mã hàng, tên hàng và số lượng hiện có trong công ty */
 SELECT MAHANG , TENHANG ,SOLUONG FROM MATHANG ; 
 /* 
- * 3.Địa chỉ, số điện thoại của nhà cung cấp có tên giao dịch VINAMILK là gì?*/
+ * 3.Địa chỉ, số điện thoại của nhà cung cấp có tên giao dịch VINAMILK là gì?*/
 SELECT DIACHI, DIENTHOAI FROM NHACUNGCAP WHERE TENGIAODICH="VINANILK" ;
 
-/* 4. Cho biết mã và tên các mặt hàng có giá lơn hơn 100000 và số lượng hiện có ít hơn 50 */
+/* 4. Cho biết mã và tên các mặt hàng có giá lơn hơn 100000 và số lượng hiện có ít hơn 50 */
 
 SELECT MAHANG ,TENHANG FROM MATHANG WHERE GIAHANG >1000 AND SOLUONG <50 ; 
 
 /*
- * 5. Đơn đặt hàng số 1 do ai đặt, do nhân viên nào lập, thời gian và địa điểm giao hàng ở đâu?
+ * 5. Đơn đặt hàng số 1 do ai đặt, do nhân viên nào lập, thời gian và địa điểm giao hàng ở đâu?
  */
 SELECT MANHANVIEN ,  NGAYGIAOHANG , NOIGIAOHANG WHERE SOHOADON =1 ;
 /*
- * 6.Hiển thị những nhân viên có lương cơ bản cao nhất công ty
+ * 6.Hiển thị những nhân viên có lương cơ bản cao nhất công ty
  */
 
 SELECT * FROM NHANVIEN WHERE LUONGCOBAN = (SELECT MAX(LUONGCOBAN) FROM NHANVIEN)
 
 /*
- * 7.Nhân viên nào trong công ty bán được nhiều hàng nhất và số lượng bán được là bao nhiêu?
+ * 7.Nhân viên nào trong công ty bán được nhiều hàng nhất và số lượng bán được là bao nhiêu?
  */
 SELECT NHANVIEN.MANHANVIEN , HO , TEN , SUM(SOLUONG) FROM (NHANVIEN INNER JOIN DONDATHANG ON NHANVIEN.MANHANVIEN=DONDATHANG.MANHANVIEN)
 INNER JOIN CHITIETDATHANG ON DONDATHANG.SOHOADON=CHITIETDATHANG.SOHOADON
@@ -112,24 +112,87 @@ GROUP BY NHANVIEN.MANHANVIEN,HO,TEN, HAVING SUM(SOLUONG)>=ALL(SELECT SUM(SOLUONG
 INNER JOIN CHITIETDATHANG ON DONDATHANG.SOHOADON=CHITIETDATHANG.SOHOADON,
 GROUP BY NHANVIEN.MANHANVIEN,HO,TEN
 
-/* 8. Hãy cho biết tổng sốhàng của mỗi loại hàng */
+/* 8. Hãy cho biết tổng sốhàng của mỗi loại hàng */
 
 SELECT MATHANG.MAHANG,TENHANG,MATHANG.SOLUONG + CASE WHEN SUM(CHITIETDATHANG.SOLUONG) IS NULL THEN 0
 ELSE SUM(CHITIETDATHANG.SOLUONG) END AS TONGSOLUONG
 FROM MATHANG LEFT OUTER JOIN CHITIETDATHANG ON MATHANG.MAHANG=CHITIETDATHANG.MAHANG
 GROUP BY MATHANG.MAHANG,TENHANG,MATHANG.SOLUONG
 
-/* 9. Tăng lương lên 50% cho những nhân viên bán được sốlượng hàng >=100 trong năm 2018. */
+/* 9. Tăng lương lên 50% cho những nhân viên bán được sốlượng hàng >=100 trong năm 2018. */
 
 UPDATE NHANVIEN SET LUONGCOBAN=LUONGCOBAN*0.5 WHERE MANHANVIEN = (SELECT MANHANVIEN FROM DONDATHANG INNER JOIN CHITIETDATHANG ON DONDATHANG.SOHOADON=CHITIETDATHANG.SOHOADON
 WHERE MANHANVIEN=NHANVIEN.MANHANVIEN GROUP BY MANHANVIEN HAVING SUM(SOLUONG)>=100)
 
-/* 10. Xóa những đơn hàng có ngày đặt hàng trước năm 2018 ra khỏi CSDL */
+/* 10. Xóa những đơn hàng có ngày đặt hàng trước năm 2018 ra khỏi CSDL */
 
 DELETE FROM DONDATHANG
 WHERE NGAYDATHANG<'1/1/2018'
 
-/* 11.Xóa khỏi bảng NHANVIEN những nhân viên đã làm việc cho công ty trên 20 năm */
+/* 11.Xóa khỏi bảng NHANVIEN những nhân viên đã làm việc cho công ty trên 20 năm */
 
 DELETE FROM NHANVIEN
-WHERE DATEDIFF(YY,NGAYLAMVIEC,GETDATE())>20
+WHERE DATEDIFF(YY,NGAYLAMVIEC,GETDATE())>20
+
+INSERT INTO NHACUNGCAP
+VALUES ('CTY01', 'CONG TY SUA VINAMILK', 'VINAMILK', '48 HAI PHONG', '0236777999', '1111', 'VINAMILK@GMAIL.COM'),
+	   ('CTY02', 'CONG TY TON HOA SEN', 'HOASEN', '48 CAO THANG', '02366868', '2222', 'HOASEN@GMAIL.COM'),
+	   ('CTY03', 'CONG TY THEP HOA PHAT', 'HOAPHAT', '127 HUNG VUONG', '02351234', '3333', 'HOAPHAT@GMAIL.COM'),
+	   ('CTY04', 'CONG TY THACO TRUONG HAI', 'THACO', '22 NGUYEN VAN LINH', '02356789', '4444', 'THACO@GMAIL.COM'),
+	   ('CTY05', 'CONG TY QUOC TIEN', 'QUOCTIEN', '11 PHAN BOI CHAU', '02367979', '5555','QUOCTIEN@GMAIL.COM');
+
+INSERT INTO LOAIHANG
+VALUES ('LH001', 'SUA'),
+	   ('LH002', 'THEP'),
+	   ('LH003', 'TON'),
+	   ('LH004', 'OTO'),
+	   ('LH005', 'XE MAY'); 
+
+INSERT INTO NHANVIEN
+VALUES ('NV101', N'NGUYỄN THANH', N'TRÍ', '02/02/2000', '10/12/2020', 'QUANG NAM', '0987654321', 29000, 9000),
+       ('NV102', N'TRẦN THỊ', 'LINH', '02/05/1995', '10/11/2020', 'QUANG BINH', '0987654321', 19000, 9500),
+	   ('NV103', N'LÊ THỊ', 'LY', '08/08/1997', '12/12/2020', 'QUANG TRI', '0987654321', 25000, 9200),
+	   ('NV104', N'HOÀNG LÊ', 'LONG', '06/07/1998', '05/05/2021', 'HUE', '0987654321', 22000, 8000),
+	   ('NV105', N'NGÔ THỊ', 'TRINH', '05/04/2000', '02/04/2021', 'DA NANG', '0987654321', 27000, 7000);	  
+
+INSERT INTO KHACHHANG
+VALUES ('KH101', 'CONG TY VNMART', 'VNMART', '12 ONG ICH KHIEM', '098989898', '1234', 'VNMART@GMAIL.COM'),
+	   ('KH102', 'CONG TY THANH PHAT', 'THANHPHAT', '778 DONG DA', '0123123123', '1235', 'THANHPHAT@GMAIL.COM'),
+	   ('KH103', 'CONG TY CUONG THINH', 'CUONGTHINH', '125 VAN CAO', '0333878798', '2345', 'CUONGTHINH@GMAIL.COM'),
+	   ('KH104', 'CONG TY VBIKE', 'VBIKE', '222 ONG ICH DUONG', '0343889889', '1213', 'VBIKE@GMAIL.COM'),
+	   ('KH105', 'CONG TY TRANH DINH CHAU', 'TDC', '55 TRAN CAO VAN', '0792792345', '4567', 'TDC@GMAIL.COM');
+
+INSERT INTO MATHANG
+VALUES ('MH001', 'SUA TIET TRUNG', 'CTY01', 'LH001', 200, 'THUNG', 500),
+	   ('MH002', 'TON 2MM', 'CTY02', 'LH003', 100, 'TAM', 250),
+	   ('MH003', 'XE AB', 'CTY05', 'LH005', 500, 'CHIEC', 35000),
+	   ('MH004', 'XE TOYOTA', 'CTY04', 'LH004', 250, 'CHIEC', 195500),
+	   ('MH005', 'THEP ONG', 'CTY03', 'LH002', 900, 'CAY', 600);
+
+INSERT INTO DONDATHANG
+VALUES (1, 'KH101', 'NV101', '01/01/2020', '01/01/2020', '01/01/2020', 'DA NANG'),
+       (2, 'KH102', 'NV102', '01/02/2020', '01/02/2020', '01/02/2020', 'HUE'),
+       (3, 'KH103', 'NV103', '01/03/2020', '01/03/2020', '01/03/2020', 'QUANG NGAI'),
+       (4, 'KH104', 'NV104', '01/04/2020', '01/04/2020', '01/04/2020', 'HA NOI'),
+       (5, 'KH105', 'NV105', '01/05/2020', '01/05/2020', '01/05/2020', 'HAI PHONG');
+
+
+INSERT INTO CHITIETDATHANG
+VALUES (1, 'MH001', 'NV101', 600, 15, 0),
+       (2, 'MH002', 'NV102', 300, 25, 0),
+	   (3, 'MH003', 'NV103', 36000, 35, 0),
+	   (4, 'MH004', 'NV104', 197000, 10, 0),
+	   (5, 'MH005', 'NV105', 750, 150, 0);
+
+SELECT * FROM CHITIETDATHANG ;
+SELECT TOP 1 A.* FROM
+(
+	SELECT MANHANVIEN, HO, TEN,
+	(
+		SELECT SUM(SOLUONG) FROM CHITIETDATHANG WHERE CHITIETDATHANG.MANHANVIEN = NHANVIEN.MANHANVIEN
+	) AS SLBAN
+	FROM NHANVIEN
+)A ORDER BY A.SLBAN DESC
+SELECT MALOAIHANG, TENLOAIHANG,
+(SELECT COUNT(*) FROM MATHANG WHERE MATHANG.MALOAIHANG = LOAIHANG.MALOAIHANG) AS SOLUONG
+FROM LOAIHANG
